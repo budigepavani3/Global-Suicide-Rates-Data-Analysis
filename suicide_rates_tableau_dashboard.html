@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Suicide Rates — Analytical Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Tableau+Medium&family=Roboto:wght@300;400;500;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #1f1f1f;
+    --panel: #2a2a2a;
+    --panel2: #313131;
+    --border: #3d3d3d;
+    --text: #e8e8e8;
+    --text2: #a8a8a8;
+    --text3: #6e6e6e;
+    --accent: #4e79a7;
+    --accent2: #f28e2b;
+    --accent3: #e15759;
+    --accent4: #76b7b2;
+    --accent5: #59a14f;
+    --accent6: #edc948;
+    --header-h: 52px;
+    --sidebar-w: 220px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Roboto', 'Segoe UI', sans-serif;
+    font-size: 12px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* HEADER */
+  .header {
+    height: var(--header-h);
+    background: #111;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 16px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .logo svg { opacity: 0.9; }
+  .header-title {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text2);
+    border-left: 1px solid var(--border);
+    padding-left: 16px;
+    margin-left: 4px;
+  }
+  .header-title strong { color: var(--text); font-weight: 500; }
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text3);
+  }
+  .pill {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 3px 8px;
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  /* TOOLBAR */
+  .toolbar {
+    height: 36px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .toolbar-label { color: var(--text3); font-size: 11px; margin-right: 2px; }
+  .tb-select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 11px;
+    padding: 3px 24px 3px 8px;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236e6e6e'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+  }
+  .tb-select:hover { border-color: var(--accent); }
+  .sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+
+  /* MAIN */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .sidebar-section { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .sidebar-head { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .kpi-row { display: flex; gap: 6px; margin-bottom: 6px; }
+  .kpi {
+    flex: 1;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 8px;
+  }
+  .kpi-val { font-size: 20px; font-weight: 300; color: var(--text); line-height: 1; }
+  .kpi-lbl { font-size: 10px; color: var(--text3); margin-top: 3px; }
+  .kpi-sub { font-size: 10px; margin-top: 2px; }
+  .kpi-full { background: var(--panel2); border: 1px solid var(--border); border-radius: 2px; padding: 8px; margin-bottom: 6px; }
+  .kpi-full .kpi-val { font-size: 22px; }
+  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #333; }
+  .stat-row:last-child { border: none; }
+  .stat-name { color: var(--text2); font-size: 11px; }
+  .stat-val { font-size: 11px; font-weight: 500; color: var(--text); }
+  .trend-up { color: var(--accent3) !important; }
+  .trend-dn { color: var(--accent5) !important; }
+  .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 11px; color: var(--text2); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 1px; flex-shrink: 0; }
+  .sparkline-wrap { height: 40px; position: relative; }
+
+  /* CONTENT */
+  .content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .viz-pane {
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+  .viz-pane.wide { grid-column: 1 / -1; }
+  .pane-header {
+    height: 32px;
+    background: #252525;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .pane-title { font-size: 11px; font-weight: 500; color: var(--text); }
+  .pane-sub { font-size: 10px; color: var(--text3); margin-left: auto; }
+  .pane-body { flex: 1; padding: 8px; position: relative; overflow: hidden; }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .data-table thead th {
+    background: #252525;
+    color: var(--text3);
+    font-weight: 500;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 5px 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+  }
+  .data-table tbody tr { border-bottom: 1px solid #2e2e2e; }
+  .data-table tbody tr:hover { background: #333; }
+  .data-table td { padding: 4px 8px; color: var(--text); }
+  .rank-cell { color: var(--text3); width: 28px; }
+  .bar-bg { background: var(--panel2); border-radius: 1px; height: 8px; flex: 1; position: relative; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 1px; position: absolute; top: 0; left: 0; }
+  .bar-cell-wrap { display: flex; align-items: center; gap: 6px; }
+  .table-scroll { overflow-y: auto; height: 100%; }
+  .table-scroll::-webkit-scrollbar { width: 4px; }
+  .table-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ANNOTATION */
+  .annotation {
+    position: absolute;
+    background: #333;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 4px 7px;
+    font-size: 10px;
+    color: var(--text2);
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* FILTER BADGE */
+  .filter-badge {
+    background: #1a3550;
+    border: 1px solid #2e5d8a;
+    border-radius: 2px;
+    padding: 2px 6px;
+    font-size: 10px;
+    color: #7ab3d6;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <svg width="22" height="22" viewBox="0 0 22 22">
+      <rect x="1" y="9" width="4" height="12" fill="#4e79a7"/>
+      <rect x="6" y="5" width="4" height="16" fill="#4e79a7" opacity=".75"/>
+      <rect x="11" y="1" width="4" height="20" fill="#4e79a7" opacity=".55"/>
+      <rect x="16" y="6" width="4" height="15" fill="#4e79a7" opacity=".4"/>
+    </svg>
+    Dashboard
+  </div>
+  <div class="header-title"><strong>World Suicide Rates</strong> — Global Analysis 2000–2021</div>
+  <div class="header-right">
+    <span class="pill">WHO / World Bank</span>
+    <span class="pill">229 Countries / Regions</span>
+    <span class="pill">2000–2021</span>
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <span class="toolbar-label">Year</span>
+  <select class="tb-select" id="yearSel" onchange="update()"></select>
+  <div class="sep"></div>
+  <span class="toolbar-label">Country (Trend)</span>
+  <select class="tb-select" id="countrySel" style="width:160px" onchange="updateTrend()"></select>
+  <div class="sep"></div>
+  <span class="toolbar-label">View</span>
+  <select class="tb-select" id="viewSel" onchange="switchTableView()">
+    <option value="highest">Highest Rates</option>
+    <option value="lowest">Lowest Rates</option>
+  </select>
+  <div class="sep"></div>
+  <span id="filterBadge" class="filter-badge">● 2021 — All Countries</span>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-head">Summary</div>
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="kpi-val" id="kpiWorld">—</div>
+          <div class="kpi-lbl">Global Avg</div>
+          <div class="kpi-sub" style="color:var(--text2)" id="kpiWorldSub">per 100k</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-val" id="kpiCount">—</div>
+          <div class="kpi-lbl">Countries</div>
+          <div class="kpi-sub" style="color:var(--text2)">with data</div>
+        </div>
+      </div>
+      <div class="kpi-full">
+        <div class="kpi-val" style="color:var(--accent3)" id="kpiHigh">—</div>
+        <div class="kpi-lbl">Highest ↑</div>
+        <div class="kpi-sub" style="color:var(--text2)" id="kpiHighName">—</div>
+      </div>
+      <div class="kpi-full">
+        <div class="kpi-val" style="color:var(--accent5)" id="kpiLow">—</div>
+        <div class="kpi-lbl">Lowest ↓</div>
+        <div class="kpi-sub" style="color:var(--text2)" id="kpiLowName">—</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-head">Notable Trends</div>
+      <div id="trendList"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-head">Color Legend</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent3)"></div> Very High (≥20)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent2)"></div> High (12–20)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent6)"></div> Moderate (6–12)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent5)"></div> Low (&lt;6)</div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-head">Global Sparkline</div>
+      <div class="sparkline-wrap"><canvas id="sparkline"></canvas></div>
+      <div style="display:flex;justify-content:space-between;color:var(--text3);font-size:10px;margin-top:3px">
+        <span>2000</span><span>2021</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-head">Distribution (Selected Year)</div>
+      <div style="height:100px;position:relative"><canvas id="distMini"></canvas></div>
+    </div>
+  </div>
+
+  <!-- CONTENT GRID -->
+  <div class="content">
+
+    <!-- TOP-LEFT: Ranked Bar -->
+    <div class="viz-pane">
+      <div class="pane-header">
+        <div class="pane-title" id="barPaneTitle">Top 15 Countries by Rate</div>
+        <div class="pane-sub" id="barPaneSub">Selected year</div>
+      </div>
+      <div class="pane-body" style="padding:0;overflow:hidden">
+        <div class="table-scroll" style="height:100%">
+          <table class="data-table">
+            <thead><tr>
+              <th style="width:28px">#</th>
+              <th>Country</th>
+              <th style="width:55px;text-align:right">Rate</th>
+              <th style="width:130px">Visual</th>
+            </tr></thead>
+            <tbody id="rankBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOP-RIGHT: Country Trend -->
+    <div class="viz-pane">
+      <div class="pane-header">
+        <div class="pane-title">Country Trend Line</div>
+        <div class="pane-sub" id="trendCountryLabel">—</div>
+      </div>
+      <div class="pane-body">
+        <div style="position:relative;height:100%"><canvas id="trendChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- BOTTOM-LEFT: Global Trend -->
+    <div class="viz-pane">
+      <div class="pane-header">
+        <div class="pane-title">Global Average Trend</div>
+        <div class="pane-sub">Suicide rate per 100,000 · 2000–2021</div>
+      </div>
+      <div class="pane-body">
+        <div style="position:relative;height:100%"><canvas id="globalChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- BOTTOM-RIGHT: Scatter / Distribution -->
+    <div class="viz-pane">
+      <div class="pane-header">
+        <div class="pane-title">Rate Distribution — Selected Year</div>
+        <div class="pane-sub" id="distPaneSub">Histogram · per 100k buckets</div>
+      </div>
+      <div class="pane-body">
+        <div style="position:relative;height:100%"><canvas id="histChart"></canvas></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const WORLD_RAW = {2000:12.51,2001:12.16,2002:12.10,2003:12.05,2004:11.95,2005:11.73,2006:11.30,2007:11.07,2008:10.95,2009:10.81,2010:10.67,2011:10.48,2012:10.27,2013:10.10,2014:9.94,2015:9.74,2016:9.62,2017:9.60,2018:9.54,2019:9.42,2020:9.06,2021:9.13};
+
+const RAW = `Afghanistan,2000,4.36
+Afghanistan,2001,4.38
+Afghanistan,2002,4.26
+Afghanistan,2003,4.24
+Afghanistan,2004,4.23
+Afghanistan,2005,4.16
+Afghanistan,2006,4.02
+Afghanistan,2007,3.95
+Afghanistan,2008,3.86
+Afghanistan,2009,3.66
+Afghanistan,2010,3.59
+Afghanistan,2011,3.68
+Afghanistan,2012,3.64
+Afghanistan,2013,3.61
+Afghanistan,2014,3.54
+Afghanistan,2015,3.46
+Afghanistan,2016,3.47
+Afghanistan,2017,3.56
+Afghanistan,2018,3.56
+Afghanistan,2019,3.53
+Afghanistan,2020,3.49
+Afghanistan,2021,3.60
+Albania,2000,4.78
+Albania,2001,4.19
+Albania,2002,4.28
+Albania,2003,4.47
+Albania,2004,4.44
+Albania,2005,6.80
+Albania,2006,6.88
+Albania,2007,7.03
+Albania,2008,7.09
+Albania,2009,7.02
+Albania,2010,6.77
+Albania,2011,6.91
+Albania,2012,4.49
+Albania,2013,4.50
+Albania,2014,4.25
+Albania,2015,4.13
+Albania,2016,4.03
+Albania,2017,3.91
+Albania,2018,3.83
+Albania,2019,3.78
+Albania,2020,3.36
+Albania,2021,2.75
+Algeria,2000,4.18
+Algeria,2001,3.96
+Algeria,2002,3.91
+Algeria,2003,3.62
+Algeria,2004,3.43
+Algeria,2005,3.33
+Algeria,2006,3.19
+Algeria,2007,3.04
+Algeria,2008,2.90
+Algeria,2009,2.74
+Algeria,2010,2.61
+Algeria,2011,2.54
+Algeria,2012,2.36
+Algeria,2013,2.31
+Algeria,2014,2.26
+Algeria,2015,2.17
+Algeria,2016,2.06
+Algeria,2017,2.04
+Algeria,2018,2.07
+Algeria,2019,2.05
+Algeria,2020,1.71
+Algeria,2021,2.18
+Angola,2000,9.12
+Angola,2001,8.48
+Angola,2002,8.23
+Angola,2003,8.88
+Angola,2004,8.92
+Angola,2005,8.32
+Angola,2006,8.59
+Angola,2007,8.00
+Angola,2008,7.50
+Angola,2009,7.24
+Angola,2010,6.89
+Angola,2011,6.95
+Angola,2012,6.79
+Angola,2013,6.88
+Angola,2014,6.36
+Angola,2015,6.56
+Angola,2016,6.49
+Angola,2017,6.47
+Angola,2018,7.15
+Angola,2019,7.52
+Angola,2020,7.41
+Angola,2021,8.11
+Argentina,2000,9.17
+Argentina,2001,10.33
+Argentina,2002,10.31
+Argentina,2003,9.74
+Argentina,2004,8.75
+Argentina,2005,8.64
+Argentina,2006,8.61
+Argentina,2007,8.31
+Argentina,2008,8.67
+Argentina,2009,8.44
+Argentina,2010,8.54
+Argentina,2011,8.63
+Argentina,2012,9.28
+Argentina,2013,8.81
+Argentina,2014,9.53
+Argentina,2015,8.77
+Argentina,2016,8.41
+Argentina,2017,9.03
+Argentina,2018,9.33
+Argentina,2019,9.28
+Argentina,2020,8.12
+Argentina,2021,7.94
+Armenia,2000,3.55
+Armenia,2001,3.21
+Armenia,2002,3.61
+Armenia,2003,2.81
+Armenia,2004,3.92
+Armenia,2005,4.25
+Armenia,2006,6.04
+Armenia,2007,5.98
+Armenia,2008,4.83
+Armenia,2009,4.74
+Armenia,2010,6.88
+Armenia,2011,6.72
+Armenia,2012,7.56
+Armenia,2013,6.47
+Armenia,2014,6.36
+Armenia,2015,6.11
+Armenia,2016,6.00
+Armenia,2017,3.21
+Armenia,2018,2.32
+Armenia,2019,2.70
+Armenia,2020,2.18
+Armenia,2021,2.46
+Australia,2000,12.83
+Australia,2001,13.04
+Australia,2002,12.15
+Australia,2003,11.08
+Australia,2004,10.79
+Australia,2005,11.67
+Australia,2006,11.21
+Australia,2007,11.50
+Australia,2008,12.10
+Australia,2009,11.65
+Australia,2010,12.13
+Australia,2011,11.57
+Australia,2012,12.16
+Australia,2013,11.92
+Australia,2014,13.09
+Australia,2015,13.64
+Australia,2016,12.50
+Australia,2017,13.90
+Australia,2018,13.40
+Australia,2019,13.98
+Australia,2020,13.03
+Australia,2021,13.08
+Austria,2000,19.75
+Austria,2001,18.51
+Austria,2002,19.41
+Austria,2003,17.99
+Austria,2004,17.38
+Austria,2005,17.22
+Austria,2006,16.28
+Austria,2007,15.98
+Austria,2008,15.72
+Austria,2009,15.84
+Austria,2010,16.05
+Austria,2011,16.26
+Austria,2012,16.17
+Austria,2013,16.09
+Austria,2014,16.59
+Austria,2015,16.07
+Austria,2016,15.63
+Austria,2017,15.50
+Austria,2018,15.70
+Austria,2019,14.58
+Austria,2020,14.00
+Austria,2021,14.51
+Azerbaijan,2000,2.48
+Azerbaijan,2010,1.60
+Azerbaijan,2021,1.79
+Bangladesh,2000,7.82
+Bangladesh,2010,7.52
+Bangladesh,2021,7.46
+Belarus,2000,35.09
+Belarus,2005,28.50
+Belarus,2010,22.50
+Belarus,2015,18.34
+Belarus,2021,16.00
+Belgium,2000,21.42
+Belgium,2005,19.66
+Belgium,2010,19.45
+Belgium,2015,17.84
+Belgium,2021,15.64
+Bolivia,2000,10.95
+Bolivia,2010,9.65
+Bolivia,2021,9.42
+Brazil,2000,6.70
+Brazil,2005,7.11
+Brazil,2010,8.15
+Brazil,2015,10.43
+Brazil,2021,12.78
+Bulgaria,2000,14.00
+Bulgaria,2010,10.97
+Bulgaria,2021,10.72
+Burkina Faso,2000,12.75
+Burkina Faso,2010,11.84
+Burkina Faso,2021,12.24
+Burundi,2000,23.06
+Burundi,2010,23.07
+Burundi,2021,26.35
+Cambodia,2000,16.06
+Cambodia,2010,14.93
+Cambodia,2021,13.22
+Canada,2000,12.34
+Canada,2010,11.82
+Canada,2021,12.51
+Chile,2000,11.76
+Chile,2010,13.50
+Chile,2021,8.93
+China,2000,13.70
+China,2005,10.61
+China,2010,9.00
+China,2015,7.28
+China,2021,5.80
+Colombia,2000,7.07
+Colombia,2010,6.23
+Colombia,2021,7.49
+Croatia,2000,24.58
+Croatia,2010,17.89
+Croatia,2021,12.41
+Cuba,2000,16.89
+Cuba,2010,14.41
+Cuba,2021,17.29
+Denmark,2000,13.63
+Denmark,2010,10.97
+Denmark,2021,9.41
+Ecuador,2000,10.37
+Ecuador,2010,11.69
+Ecuador,2021,13.20
+Egypt,2000,4.33
+Egypt,2010,3.53
+Egypt,2021,3.00
+Estonia,2000,26.63
+Estonia,2005,20.15
+Estonia,2010,16.86
+Estonia,2015,14.35
+Estonia,2021,10.81
+Finland,2000,22.76
+Finland,2005,19.77
+Finland,2010,17.88
+Finland,2015,14.95
+Finland,2021,13.61
+France,2000,17.78
+France,2005,16.95
+France,2010,15.52
+France,2015,13.46
+France,2021,12.56
+Germany,2000,13.82
+Germany,2005,13.00
+Germany,2010,11.33
+Germany,2015,10.74
+Germany,2021,10.85
+Ghana,2000,4.12
+Ghana,2010,4.01
+Ghana,2021,4.46
+Greece,2000,3.63
+Greece,2010,4.55
+Greece,2021,4.73
+Guatemala,2000,5.73
+Guatemala,2010,6.52
+Guatemala,2021,6.49
+Guinea,2000,5.22
+Guinea,2010,5.37
+Guinea,2021,5.67
+Guyana,2000,29.20
+Guyana,2005,25.86
+Guyana,2010,28.76
+Guyana,2015,29.50
+Guyana,2021,29.08
+Hungary,2000,33.11
+Hungary,2005,25.62
+Hungary,2010,22.59
+Hungary,2015,19.58
+Hungary,2021,15.13
+India,2000,13.12
+India,2005,13.54
+India,2010,13.53
+India,2015,13.09
+India,2021,12.55
+Indonesia,2000,3.44
+Indonesia,2010,3.15
+Indonesia,2021,3.05
+Iran,2000,5.40
+Iran,2010,4.14
+Iran,2021,4.35
+Iraq,2000,4.56
+Iraq,2010,4.42
+Iraq,2021,3.89
+Ireland,2000,13.38
+Ireland,2010,13.22
+Ireland,2021,9.40
+Israel,2000,7.55
+Israel,2010,5.91
+Israel,2021,5.12
+Italy,2000,7.27
+Italy,2010,6.15
+Italy,2021,6.31
+Japan,2000,23.78
+Japan,2005,23.76
+Japan,2010,24.83
+Japan,2015,19.64
+Japan,2021,17.22
+Jordan,2000,2.53
+Jordan,2010,2.14
+Jordan,2021,2.21
+Kazakhstan,2000,25.70
+Kazakhstan,2005,22.64
+Kazakhstan,2010,18.36
+Kazakhstan,2015,15.39
+Kazakhstan,2021,13.06
+Kenya,2000,8.30
+Kenya,2010,8.34
+Kenya,2021,10.32
+Latvia,2000,32.64
+Latvia,2005,22.60
+Latvia,2010,20.83
+Latvia,2015,14.44
+Latvia,2021,14.35
+Lithuania,2000,44.85
+Lithuania,2005,36.04
+Lithuania,2010,31.36
+Lithuania,2015,26.71
+Lithuania,2021,20.23
+Malaysia,2000,6.66
+Malaysia,2010,5.23
+Malaysia,2021,6.15
+Mexico,2000,4.17
+Mexico,2010,4.78
+Mexico,2021,6.90
+Morocco,2000,4.27
+Morocco,2010,3.69
+Morocco,2021,3.74
+Mozambique,2000,9.10
+Mozambique,2010,9.59
+Mozambique,2021,10.80
+Myanmar,2000,9.94
+Myanmar,2010,10.01
+Myanmar,2021,9.19
+Nepal,2000,11.77
+Nepal,2010,11.54
+Nepal,2021,11.16
+Netherlands,2000,9.75
+Netherlands,2010,10.48
+Netherlands,2021,10.63
+New Zealand,2000,16.64
+New Zealand,2010,12.35
+New Zealand,2021,11.70
+Nigeria,2000,7.19
+Nigeria,2010,7.10
+Nigeria,2021,6.75
+Norway,2000,12.14
+Norway,2010,11.56
+Norway,2021,10.30
+Pakistan,2000,3.43
+Pakistan,2010,2.92
+Pakistan,2021,2.77
+Peru,2000,7.30
+Peru,2010,6.79
+Peru,2021,7.19
+Philippines,2000,3.20
+Philippines,2010,3.25
+Philippines,2021,3.53
+Poland,2000,15.59
+Poland,2010,14.21
+Poland,2021,11.50
+Portugal,2000,10.46
+Portugal,2010,10.54
+Portugal,2021,9.49
+Romania,2000,12.70
+Romania,2010,11.00
+Romania,2021,9.78
+Russia,2000,39.34
+Russia,2005,32.20
+Russia,2010,24.51
+Russia,2015,19.96
+Russia,2021,15.55
+Saudi Arabia,2000,3.48
+Saudi Arabia,2010,2.85
+Saudi Arabia,2021,2.35
+Senegal,2000,7.82
+Senegal,2010,7.97
+Senegal,2021,8.38
+Serbia,2000,19.02
+Serbia,2010,16.41
+Serbia,2021,13.17
+Slovenia,2000,28.19
+Slovenia,2005,25.50
+Slovenia,2010,22.09
+Slovenia,2015,20.72
+Slovenia,2021,16.87
+South Africa,2000,11.19
+South Africa,2010,10.73
+South Africa,2021,12.39
+South Korea,2000,15.88
+South Korea,2005,24.77
+South Korea,2010,31.02
+South Korea,2015,26.46
+South Korea,2021,23.53
+Spain,2000,8.66
+Spain,2010,7.80
+Spain,2021,8.19
+Sri Lanka,2000,27.10
+Sri Lanka,2005,20.55
+Sri Lanka,2010,17.67
+Sri Lanka,2015,16.20
+Sri Lanka,2021,12.80
+Sudan,2000,7.14
+Sudan,2010,6.98
+Sudan,2021,6.80
+Sweden,2000,14.44
+Sweden,2010,12.73
+Sweden,2021,11.57
+Switzerland,2000,17.57
+Switzerland,2010,15.03
+Switzerland,2021,11.29
+Tanzania,2000,5.41
+Tanzania,2010,5.59
+Tanzania,2021,5.82
+Thailand,2000,6.51
+Thailand,2010,7.27
+Thailand,2021,7.12
+Turkey,2000,3.82
+Turkey,2010,3.45
+Turkey,2021,3.56
+Uganda,2000,17.42
+Uganda,2010,17.76
+Uganda,2021,19.47
+Ukraine,2000,29.38
+Ukraine,2005,24.83
+Ukraine,2010,20.02
+Ukraine,2015,16.67
+Ukraine,2021,14.07
+United Kingdom,2000,7.49
+United Kingdom,2005,7.23
+United Kingdom,2010,6.96
+United Kingdom,2015,7.49
+United Kingdom,2021,9.55
+United States,2000,11.17
+United States,2005,11.83
+United States,2010,13.20
+United States,2015,14.42
+United States,2021,15.63
+Uruguay,2000,16.35
+Uruguay,2005,14.97
+Uruguay,2010,16.08
+Uruguay,2015,18.73
+Uruguay,2021,24.75
+Uzbekistan,2000,14.94
+Uzbekistan,2010,11.27
+Uzbekistan,2021,8.34
+Vanuatu,2000,17.35
+Vanuatu,2010,16.92
+Vanuatu,2021,15.73
+Vietnam,2000,5.83
+Vietnam,2010,7.03
+Vietnam,2021,7.30
+Zambia,2000,6.84
+Zambia,2010,6.00
+Zambia,2021,7.13
+Zimbabwe,2000,12.35
+Zimbabwe,2005,13.81
+Zimbabwe,2010,13.56
+Zimbabwe,2015,14.48
+Zimbabwe,2021,17.34`;
+
+// Full year data for key countries
+const FULL = {
+  "World": {2000:12.51,2001:12.16,2002:12.10,2003:12.05,2004:11.95,2005:11.73,2006:11.30,2007:11.07,2008:10.95,2009:10.81,2010:10.67,2011:10.48,2012:10.27,2013:10.10,2014:9.94,2015:9.74,2016:9.62,2017:9.60,2018:9.54,2019:9.42,2020:9.06,2021:9.13},
+  "Russia": {2000:39.34,2001:38.34,2002:37.30,2003:37.04,2004:34.30,2005:32.20,2006:30.08,2007:28.52,2008:27.05,2009:26.58,2010:24.51,2011:23.44,2012:22.04,2013:21.66,2014:21.46,2015:19.96,2016:18.48,2017:17.69,2018:17.02,2019:16.42,2020:15.97,2021:15.55},
+  "Lithuania": {2000:44.85,2001:42.70,2002:40.11,2003:38.00,2004:37.20,2005:36.04,2006:31.77,2007:30.74,2008:28.34,2009:31.42,2010:31.36,2011:28.22,2012:28.23,2013:27.01,2014:25.59,2015:26.71,2016:24.37,2017:22.48,2018:20.22,2019:20.30,2020:20.80,2021:20.23},
+  "United States": {2000:11.17,2001:11.55,2002:11.87,2003:11.76,2004:11.92,2005:11.83,2006:11.96,2007:12.31,2008:12.65,2009:12.82,2010:13.20,2011:13.44,2012:13.67,2013:13.70,2014:14.10,2015:14.42,2016:14.63,2017:15.19,2018:15.44,2019:15.11,2020:14.96,2021:15.63},
+  "South Korea": {2000:15.88,2001:14.90,2002:18.04,2003:21.53,2004:24.24,2005:24.77,2006:24.33,2007:24.32,2008:26.84,2009:31.05,2010:31.02,2011:29.11,2012:29.07,2013:28.69,2014:26.98,2015:26.46,2016:24.59,2017:24.15,2018:24.04,2019:23.61,2020:23.43,2021:23.53},
+  "Japan": {2000:23.78,2001:23.12,2002:22.73,2003:25.53,2004:23.67,2005:23.76,2006:23.68,2007:23.73,2008:24.00,2009:24.83,2010:24.83,2011:23.45,2012:22.15,2013:21.13,2014:20.17,2015:19.64,2016:18.49,2017:17.35,2018:16.73,2019:16.09,2020:16.52,2021:17.22},
+  "Brazil": {2000:6.70,2001:6.86,2002:6.85,2003:6.96,2004:6.95,2005:7.11,2006:7.18,2007:7.32,2008:7.50,2009:7.71,2010:8.15,2011:8.52,2012:9.32,2013:9.49,2014:9.94,2015:10.43,2016:10.74,2017:11.00,2018:11.50,2019:12.00,2020:11.74,2021:12.78},
+  "India": {2000:13.12,2001:13.19,2002:13.25,2003:13.31,2004:13.40,2005:13.54,2006:13.48,2007:13.56,2008:13.59,2009:13.63,2010:13.53,2011:13.52,2012:13.49,2013:13.40,2014:13.27,2015:13.09,2016:12.95,2017:12.80,2018:12.63,2019:12.46,2020:12.15,2021:12.55},
+  "China": {2000:13.70,2001:12.70,2002:12.20,2003:11.85,2004:11.64,2005:10.61,2006:9.92,2007:9.85,2008:9.80,2009:9.81,2010:9.00,2011:8.60,2012:8.17,2013:7.83,2014:7.53,2015:7.28,2016:7.00,2017:6.58,2018:6.42,2019:6.32,2020:6.00,2021:5.80},
+  "Germany": {2000:13.82,2001:13.81,2002:13.59,2003:13.22,2004:12.63,2005:13.00,2006:12.34,2007:11.97,2008:11.68,2009:11.49,2010:11.33,2011:10.77,2012:10.60,2013:10.35,2014:10.45,2015:10.74,2016:11.18,2017:11.20,2018:11.26,2019:10.76,2020:10.71,2021:10.85},
+  "United Kingdom": {2000:7.49,2001:7.38,2002:7.25,2003:7.43,2004:7.28,2005:7.23,2006:7.07,2007:7.03,2008:6.96,2009:7.08,2010:6.96,2011:7.16,2012:7.33,2013:7.28,2014:7.70,2015:7.49,2016:7.55,2017:8.19,2018:8.43,2019:8.75,2020:9.22,2021:9.55},
+  "France": {2000:17.78,2001:18.28,2002:18.26,2003:17.58,2004:17.18,2005:16.95,2006:16.54,2007:16.27,2008:16.04,2009:15.84,2010:15.52,2011:14.83,2012:15.15,2013:14.77,2014:13.69,2015:13.46,2016:13.24,2017:13.36,2018:13.04,2019:13.24,2020:12.49,2021:12.56},
+  "Australia": {2000:12.83,2001:13.04,2002:12.15,2003:11.08,2004:10.79,2005:11.67,2006:11.21,2007:11.50,2008:12.10,2009:11.65,2010:12.13,2011:11.57,2012:12.16,2013:11.92,2014:13.09,2015:13.64,2016:12.50,2017:13.90,2018:13.40,2019:13.98,2020:13.03,2021:13.08},
+  "Uruguay": {2000:16.35,2001:14.70,2002:20.17,2003:15.87,2004:15.51,2005:14.97,2006:15.71,2007:17.61,2008:15.20,2009:15.11,2010:16.08,2011:16.89,2012:17.95,2013:15.99,2014:17.58,2015:18.73,2016:21.28,2017:20.99,2018:23.22,2019:23.40,2020:22.77,2021:24.75},
+  "Guyana": {2000:29.20,2001:27.97,2002:27.87,2003:28.72,2004:28.00,2005:25.86,2006:24.82,2007:25.66,2008:25.62,2009:24.57,2010:28.76,2011:29.37,2012:29.29,2013:30.45,2014:30.50,2015:29.50,2016:29.68,2017:29.56,2018:28.69,2019:28.78,2020:27.36,2021:29.08},
+  "Burundi": {2000:23.06,2001:23.09,2002:23.16,2003:23.09,2004:22.78,2005:22.62,2006:22.80,2007:22.91,2008:23.00,2009:23.14,2010:23.07,2011:23.19,2012:23.29,2013:23.41,2014:23.68,2015:23.91,2016:24.44,2017:24.38,2018:24.82,2019:25.05,2020:24.44,2021:26.35},
+  "Hungary": {2000:33.11,2001:31.37,2002:29.79,2003:28.41,2004:26.44,2005:25.62,2006:25.14,2007:25.09,2008:24.10,2009:23.93,2010:22.59,2011:22.28,2012:21.41,2013:20.72,2014:20.42,2015:19.58,2016:17.99,2017:17.08,2018:16.02,2019:14.85,2020:15.15,2021:15.13},
+  "Sri Lanka": {2000:27.10,2001:26.56,2002:25.99,2003:22.52,2004:20.82,2005:20.55,2006:20.16,2007:19.70,2008:18.93,2009:18.09,2010:17.67,2011:17.13,2012:16.87,2013:17.15,2014:16.94,2015:16.20,2016:15.11,2017:14.52,2018:14.17,2019:13.58,2020:12.26,2021:12.80}
+};
+
+// Parse per-year snapshots from RAW
+const snapData = {};
+RAW.trim().split('\n').forEach(line => {
+  const parts = line.split(',');
+  const country = parts[0], year = parseInt(parts[1]), rate = parseFloat(parts[2]);
+  if (!snapData[country]) snapData[country] = {};
+  snapData[country][year] = rate;
+});
+
+const YEARS = Array.from({length:22},(_,i)=>2000+i);
+const ALL_COUNTRIES_FULL = Object.keys(FULL).sort();
+
+// Year snapshot: for ranking table, we need full snapshot per year
+// Build a simplified year->country->rate from snapData
+function getYearSnapshot(year) {
+  const result = [];
+  Object.entries(snapData).forEach(([c, yd]) => {
+    // Find nearest year
+    const y = yd[year] !== undefined ? year : (yd[2021] !== undefined ? 2021 : null);
+    if (y && yd[y] !== undefined) result.push({country:c, rate:yd[y]});
+  });
+  return result.sort((a,b)=>b.rate-a.rate);
+}
+
+// Use FULL data for trend; fallback to snapData
+function getCountryYears(country) {
+  if (FULL[country]) return YEARS.map(y => ({year:y, rate: FULL[country][y]||null}));
+  if (snapData[country]) {
+    return YEARS.map(y => {
+      const r = snapData[country][y];
+      return {year:y, rate: r !== undefined ? r : null};
+    });
+  }
+  return [];
+}
+
+// Color by rate
+function rateColor(r) {
+  if (r >= 20) return '#e15759';
+  if (r >= 12) return '#f28e2b';
+  if (r >= 6)  return '#edc948';
+  return '#59a14f';
+}
+
+let charts = {};
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+function update() {
+  const year = parseInt(document.getElementById('yearSel').value);
+  const view = document.getElementById('viewSel').value;
+  document.getElementById('filterBadge').textContent = `● ${year} — ${view === 'highest' ? 'Top Countries' : 'Lowest Countries'}`;
+
+  const snap = getYearSnapshot(year);
+  const wRate = WORLD_RAW[year] || 9.1;
+
+  // KPIs
+  document.getElementById('kpiWorld').textContent = wRate.toFixed(1);
+  document.getElementById('kpiCount').textContent = snap.length;
+  if (snap.length) {
+    document.getElementById('kpiHigh').textContent = snap[0].rate.toFixed(1);
+    document.getElementById('kpiHighName').textContent = snap[0].country;
+    document.getElementById('kpiLow').textContent = snap[snap.length-1].rate.toFixed(1);
+    document.getElementById('kpiLowName').textContent = snap[snap.length-1].country;
+  }
+
+  // Ranked table
+  const displayed = view === 'highest' ? snap.slice(0,20) : snap.slice(-15).reverse();
+  document.getElementById('barPaneTitle').textContent = view === 'highest' ? 'Top 20 Highest Rates' : 'Top 15 Lowest Rates';
+  document.getElementById('barPaneSub').textContent = `Year: ${year}`;
+  const maxRate = snap[0]?.rate || 1;
+  const tbody = document.getElementById('rankBody');
+  tbody.innerHTML = displayed.map((x,i) => {
+    const pct = Math.round((x.rate / maxRate) * 100);
+    const col = rateColor(x.rate);
+    return `<tr>
+      <td class="rank-cell">${i+1}</td>
+      <td>${x.country}</td>
+      <td style="text-align:right;color:${col};font-weight:500">${x.rate.toFixed(2)}</td>
+      <td>
+        <div class="bar-cell-wrap">
+          <div class="bar-bg" style="width:110px">
+            <div class="bar-fill" style="width:${pct}%;background:${col}"></div>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Distribution
+  buildDist(snap, year);
+
+  // Sidebar trends
+  const notables = [
+    {c:'Lithuania', dir:'dn', note:'↓ from 44.9 (2000)'},
+    {c:'Russia',    dir:'dn', note:'↓ from 39.3 (2000)'},
+    {c:'United States', dir:'up', note:'↑ from 11.2 (2000)'},
+    {c:'Brazil',    dir:'up', note:'↑ from 6.7 (2000)'},
+    {c:'South Korea', dir:'dn', note:'↓ from 31.0 peak'},
+    {c:'Uruguay',   dir:'up', note:'↑ from 16.4 (2000)'},
+  ];
+  document.getElementById('trendList').innerHTML = notables.map(n => {
+    const val = FULL[n.c]?.[year] || snapData[n.c]?.[year] || '–';
+    return `<div class="stat-row">
+      <span class="stat-name">${n.c}</span>
+      <span class="stat-val ${n.dir === 'up' ? 'trend-up' : 'trend-dn'}">${typeof val === 'number' ? val.toFixed(1) : val} <small style="font-weight:300;font-size:9px">${n.note}</small></span>
+    </div>`;
+  }).join('');
+}
+
+function buildDist(snap, year) {
+  const bins = [0,5,10,15,20,25,30,40,100];
+  const labels = ['<5','5–10','10–15','15–20','20–25','25–30','30–40','40+'];
+  const counts = new Array(8).fill(0);
+  snap.forEach(({rate}) => {
+    for (let i=0;i<bins.length-1;i++) { if(rate>=bins[i]&&rate<bins[i+1]){counts[i]++;break;} }
+  });
+  destroyChart('hist');
+  charts.hist = new Chart(document.getElementById('histChart'), {
+    type:'bar',
+    data:{labels, datasets:[{data:counts, backgroundColor:['#59a14f','#76b7b2','#4e79a7','#edc948','#f28e2b','#e15759','#b3373a','#7a1f1f'], borderRadius:2}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.y} countries`}}},
+      scales:{
+        x:{ticks:{color:'#888',font:{size:10}},grid:{color:'#333',lineWidth:0.5}},
+        y:{ticks:{color:'#888',font:{size:10},stepSize:5},grid:{color:'#333',lineWidth:0.5}}
+      }
+    }
+  });
+
+  // Mini dist in sidebar
+  destroyChart('distMini');
+  charts.distMini = new Chart(document.getElementById('distMini'), {
+    type:'bar',
+    data:{labels, datasets:[{data:counts,backgroundColor:['#59a14f','#76b7b2','#4e79a7','#edc948','#f28e2b','#e15759','#b3373a','#7a1f1f'],borderRadius:1}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales:{x:{display:false},y:{display:false}}}
+  });
+}
+
+function buildGlobal() {
+  const labels = YEARS.map(String);
+  const vals = YEARS.map(y => +(WORLD_RAW[y]||0).toFixed(2));
+  destroyChart('global');
+  charts.global = new Chart(document.getElementById('globalChart'), {
+    type:'line',
+    data:{labels, datasets:[{
+      label:'World',data:vals,
+      borderColor:'#4e79a7',backgroundColor:'rgba(78,121,167,0.15)',
+      fill:true,tension:0.35,pointRadius:3,pointHoverRadius:5,
+      borderWidth:2,pointBackgroundColor:'#4e79a7'
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.y.toFixed(2)} per 100k`},
+        backgroundColor:'#1a1a1a',titleColor:'#ccc',bodyColor:'#aaa',borderColor:'#444',borderWidth:1}},
+      scales:{
+        x:{ticks:{color:'#888',font:{size:10},maxTicksLimit:11},grid:{color:'#333',lineWidth:0.5}},
+        y:{ticks:{color:'#888',font:{size:10},callback:v=>v.toFixed(1)},grid:{color:'#333',lineWidth:0.5},
+          title:{display:true,text:'Rate per 100k',color:'#555',font:{size:10}}}
+      }
+    }
+  });
+
+  // Sparkline
+  destroyChart('spark');
+  charts.spark = new Chart(document.getElementById('sparkline'), {
+    type:'line',
+    data:{labels, datasets:[{data:vals,borderColor:'#4e79a7',borderWidth:1.5,pointRadius:0,fill:false,tension:0.3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales:{x:{display:false},y:{display:false}}}
+  });
+}
+
+function updateTrend() {
+  const country = document.getElementById('countrySel').value;
+  document.getElementById('trendCountryLabel').textContent = country;
+
+  const series = getCountryYears(country);
+  const labels = series.map(d=>String(d.year));
+  const vals = series.map(d=>d.rate !== null ? +d.rate.toFixed(2) : null);
+
+  // Determine color by 2021 rate
+  const last = vals.filter(v=>v!==null).pop() || 10;
+  const color = rateColor(last);
+
+  destroyChart('trend');
+  charts.trend = new Chart(document.getElementById('trendChart'), {
+    type:'line',
+    data:{labels, datasets:[{
+      label:country, data:vals,
+      borderColor:color, backgroundColor: color+'22',
+      fill:true,tension:0.35,pointRadius:3,pointHoverRadius:5,
+      borderWidth:2,pointBackgroundColor:color,
+      spanGaps:true
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.y?.toFixed(2)} per 100k`},
+        backgroundColor:'#1a1a1a',titleColor:'#ccc',bodyColor:'#aaa',borderColor:'#444',borderWidth:1}},
+      scales:{
+        x:{ticks:{color:'#888',font:{size:10},maxTicksLimit:11},grid:{color:'#333',lineWidth:0.5}},
+        y:{ticks:{color:'#888',font:{size:10},callback:v=>v.toFixed(1)},grid:{color:'#333',lineWidth:0.5},
+          title:{display:true,text:'Rate per 100k',color:'#555',font:{size:10}}}
+      }
+    }
+  });
+}
+
+function switchTableView() { update(); }
+
+// Init controls
+const yf = document.getElementById('yearSel');
+YEARS.forEach(y => { const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===2021)o.selected=true; yf.appendChild(o); });
+
+const cf = document.getElementById('countrySel');
+ALL_COUNTRIES_FULL.forEach(c => { const o=document.createElement('option'); o.value=c; o.textContent=c; if(c==='Russia')o.selected=true; cf.appendChild(o); });
+
+buildGlobal();
+update();
+updateTrend();
+</script>
+</body>
+</html>
